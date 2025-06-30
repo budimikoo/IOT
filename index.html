@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Realtime IoT Sensor Monitoring</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
+    .box { background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+    th { background: #007BFF; color: white; }
+  </style>
+</head>
+<body>
+
+<h2>Realtime IoT Sensor Monitoring</h2>
+
+<div class="box">
+  <canvas id="chartSuhu" height="200"></canvas>
+</div>
+
+<div class="box">
+  <canvas id="chartKelembaban" height="200"></canvas>
+</div>
+
+<div class="box">
+  <h3>Data Sensor Terbaru</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Suhu DHT11 (°C)</th>
+        <th>Kelembapan (%)</th>
+        <th>Suhu LM35 (°C)</th>
+        <th>Level LED</th>
+        <th>Waktu</th>
+      </tr>
+    </thead>
+    <tbody id="tabelData">
+    </tbody>
+  </table>
+</div>
+
+<script>
+const labelWaktu = [];
+const dataSuhuDHT = [];
+const dataSuhuLM35 = [];
+const dataKelembaban = [];
+
+const chartSuhu = new Chart(document.getElementById('chartSuhu').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: labelWaktu,
+    datasets: [
+      { label: 'Suhu (°C)', data: dataSuhuDHT, borderColor: 'blue', fill: false },
+    ]
+  },
+  options: { responsive: true, animation: false }
+});
+
+const chartKelembaban = new Chart(document.getElementById('chartKelembaban').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: labelWaktu,
+    datasets: [
+      { label: 'Kelembaban (%)', data: dataKelembaban, borderColor: 'green', fill: false }
+    ]
+  },
+  options: { responsive: true, animation: false }
+});
+
+function loadData() {
+  axios.get('api/tabel.php')
+    .then(res => {
+      const data = res.data.reverse(); // agar data lama di depan
+      const tbody = document.getElementById('tabelData');
+      tbody.innerHTML = '';
+
+      labelWaktu.length = 0;
+      dataSuhuDHT.length = 0;
+      dataSuhuLM35.length = 0;
+      dataKelembaban.length = 0;
+
+      data.forEach((d, i) => {
+        labelWaktu.push(d.waktu);
+        dataSuhuDHT.push(parseFloat(d.suhuDHT));
+        dataSuhuLM35.push(parseFloat(d.suhuLM35));
+        dataKelembaban.push(parseFloat(d.kelembapan));
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${d.suhuDHT}</td>
+            <td>${d.kelembapan}</td>
+            <td>${d.suhuLM35}</td>
+            <td>${d.led_level}</td>
+            <td>${d.waktu}</td>
+          </tr>
+        `;
+      });
+
+      chartSuhu.update();
+      chartKelembaban.update();
+    })
+    .catch(err => console.error(err));
+}
+
+setInterval(loadData, 5000); // refresh setiap 5 detik
+loadData();
+</script>
+
+</body>
+</html>
